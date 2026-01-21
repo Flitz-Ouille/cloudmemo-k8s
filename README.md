@@ -1,77 +1,77 @@
-# CloudMemo - Kubernetes Multi-Tenant Deployment
+# CloudMemo - Déploiement Multi-Locataire Kubernetes
 
-## Overview
+## Aperçu
 
-This project demonstrates a **multi-tenant Kubernetes deployment** of the CloudMemo application using:
+Ce projet démontre un **déploiement multi-locataire Kubernetes** de l'application CloudMemo utilisant :
 
-- **Docker** for containerization and image management
-- **Kubernetes** for orchestration with namespace isolation
-- **Network Policies** for security and inter-namespace communication control
-- **Redis** as a stateful service per namespace
-- **Ansible** for infrastructure automation (optional)
+- **Docker** pour la conteneurisation et la gestion des images
+- **Kubernetes** pour l'orchestration avec isolation par namespace
+- **Network Policies** pour la sécurité et le contrôle de la communication inter-namespace
+- **Redis** comme service avec état par namespace
+- **Ansible** pour l'automation de l'infrastructure (optionnel)
 
-The deployment includes two separate namespaces (`team-blue` and `team-green`), each with isolated CloudMemo and Redis instances, demonstrating proper multi-tenancy practices and network security policies.
+Le déploiement comprend deux namespaces séparés (`team-blue` et `team-green`), chacun avec des instances isolées de CloudMemo et Redis, démontrant les bonnes pratiques de multi-location et les politiques de sécurité réseau.
 
 ---
 
 ## Architecture
 
-### Project Structure
+### Structure du Projet
 
 ```
 cloudmemo-k8s/
-├── Dockerfile              # Docker image build for CloudMemo
-├── docker-compose.yaml    # Local testing with Docker Compose
-├── README.md               # This file
+├── Dockerfile              # Build de l'image Docker pour CloudMemo
+├── docker-compose.yaml     # Tests locaux avec Docker Compose
+├── README.md               # Ce fichier
 ├── kubernetes/
-│  ├── namespaces.yaml      # Namespace definitions (team-blue, team-green)
-│  ├── cloudmemo.yaml      # CloudMemo Deployment & Service
-│  ├── redis.yaml           # Redis StatefulSet & Service
-│  ├── ingress.yaml         # Ingress routes (blue/green)
+│  ├── namespaces.yaml      # Définitions des namespaces (team-blue, team-green)
+│  ├── cloudmemo.yaml       # Deployment & Service CloudMemo
+│  ├── redis.yaml           # StatefulSet & Service Redis
+│  ├── ingress.yaml         # Routes Ingress (blue/green)
 │  ├── network-policies/
-│  └──    ├── default-deny.yaml
-│     └── allow-app-redis.yaml
-└── ansible/                # Automation playbooks (optional)
-   └── deploy.yaml         # Kubernetes deployment automation
+│  │  ├── default-deny.yaml
+│  │  └── allow-app-redis.yaml
+│  └── ansible/             # Playbooks d'automation (optionnel)
+│     └── deploy.yaml       # Automation de déploiement Kubernetes
 ```
 
 ---
 
-## Prerequisites
+## Prérequis
 
-- **Docker** installed (for local testing)
-- **Kubernetes** cluster (v1.20+)
-- **kubectl** configured to access your cluster
-- **Calico** CNI plugin installed (for NetworkPolicies)
-- **Docker Hub account** (for pushing images)
+- **Docker** installé (pour les tests locaux)
+- Cluster **Kubernetes** (v1.20+)
+- **kubectl** configuré pour accéder à votre cluster
+- Plugin CNI **Calico** installé (pour les NetworkPolicies)
+- Compte **Docker Hub** (pour pousser les images)
 
 ---
 
-## Step 1: Build and Test Locally with Docker
+## Étape 1 : Build et Test Local avec Docker
 
-### Build the CloudMemo Docker image
+### Construire l'image Docker CloudMemo
 
 ```bash
 docker build -t flitzouille/cloudmemo:1.0 .
 ```
 
-### Test with Docker Compose
+### Tester avec Docker Compose
 
 ```bash
 docker-compose up -d
 ```
 
-This will start:
-- **CloudMemo** on `http://localhost:5000`
-- **Redis** on `localhost:6379`
+Cela démarre :
+- **CloudMemo** sur `http://localhost:5000`
+- **Redis** sur `localhost:6379`
 
-Verify it works:
+Vérifier que tout fonctionne :
 
 ```bash
 curl http://localhost:5000/
 ```
 
-### Push image to Docker Hub
+### Pousser l'image vers Docker Hub
 
 ```bash
 docker login
@@ -80,217 +80,223 @@ docker push flitzouille/cloudmemo:1.0
 
 ---
 
-## Step 2: Deploy to Kubernetes
+## Étape 2 : Déployer sur Kubernetes
 
-### 1. Create namespaces
+### 1. Créer les namespaces
 
 ```bash
 kubectl apply -f kubernetes/namespaces.yaml
 ```
 
-### 2. Deploy Redis in both namespaces
+### 2. Déployer Redis dans les deux namespaces
 
 ```bash
 kubectl apply -n team-blue  -f kubernetes/redis.yaml
 kubectl apply -n team-green -f kubernetes/redis.yaml
 ```
 
-Verify Redis is running:
+Vérifier que Redis fonctionne :
 
 ```bash
 kubectl get pods -n team-blue
 kubectl get pods -n team-green
 ```
 
-### 3. Deploy CloudMemo in both namespaces
+### 3. Déployer CloudMemo dans les deux namespaces
 
 ```bash
 kubectl apply -n team-blue  -f kubernetes/cloudmemo.yaml
 kubectl apply -n team-green -f kubernetes/cloudmemo.yaml
 ```
 
-Verify deployment:
+Vérifier le déploiement :
 
 ```bash
 kubectl get all -n team-blue
 kubectl get all -n team-green
 ```
 
-### 4. Deploy Ingress (optional)
+### 4. Déployer l'Ingress (optionnel)
 
 ```bash
 kubectl apply -f kubernetes/ingress.yaml
 ```
 
-This creates:
-- `blue.lucas.tp.kaas-mvp-ts.fr` → team-blue CloudMemo
-- `green.lucas.tp.kaas-mvp-ts.fr` → team-green CloudMemo
+Cela crée :
+- `blue.lucas.tp.kaas-mvp-ts.fr` → CloudMemo team-blue
+- `green.lucas.tp.kaas-mvp-ts.fr` → CloudMemo team-green
 
 ---
 
-## Step 3: Apply Network Policies
+## Étape 3 : Appliquer les Politiques Réseau
 
-Network Policies enforce multi-tenant isolation:
+Les Network Policies appliquent l'isolation multi-locataire :
 
-### Default Deny (blocks all ingress traffic)
+### Deny par Défaut (bloque tout le trafic entrant)
 
 ```bash
 kubectl apply -n team-blue  -f kubernetes/network-policies/default-deny.yaml
 kubectl apply -n team-green -f kubernetes/network-policies/default-deny.yaml
 ```
 
-### Allow App → Redis (port 6379, same namespace)
+### Autoriser App → Redis (port 6379, même namespace)
 
 ```bash
 kubectl apply -n team-blue  -f kubernetes/network-policies/allow-app-redis.yaml
 kubectl apply -n team-green -f kubernetes/network-policies/allow-app-redis.yaml
 ```
 
-**Result**: CloudMemo can only access Redis in its own namespace. Cross-namespace access is blocked.
+**Résultat** : CloudMemo ne peut accéder à Redis que dans son propre namespace. L'accès inter-namespace est bloqué.
 
 ---
 
-## Testing
+## Tests
 
-### Access the applications locally
+### Accéder aux applications localement
 
-Use `kubectl port-forward` for local access:
+Utiliser `kubectl port-forward` pour un accès local :
 
 ```bash
-# Terminal 1: team-blue
+# Terminal 1 : team-blue
 kubectl port-forward -n team-blue deploy/cloudmemo 5001:5000
 
-# Terminal 2: team-green
+# Terminal 2 : team-green
 kubectl port-forward -n team-green deploy/cloudmemo 5002:5000
 ```
 
-Access from your PC:
-- **team-blue**: `http://localhost:5001`
-- **team-green**: `http://localhost:5002`
+Accès depuis votre PC :
+- **team-blue** : `http://localhost:5001`
+- **team-green** : `http://localhost:5002`
 
-### Test data isolation
+### Tester l'isolation des données
 
-1. Create a memo in `http://localhost:5001` (team-blue)
-2. Create a different memo in `http://localhost:5002` (team-green)
-3. Verify that each namespace only sees its own data
+1. Créer un mémo dans `http://localhost:5001` (team-blue)
+2. Créer un mémo différent dans `http://localhost:5002` (team-green)
+3. Vérifier que chaque namespace ne voit que ses propres données
 
-### Test the "hack" scenario
+### Tester le scénario de "piratage"
 
-Prove that NetworkPolicies prevent cross-tenant access:
+Prouver que les Network Policies empêchent l'accès inter-locataires :
 
 ```bash
-# Modify team-blue CloudMemo to point to team-green Redis
+# Modifier CloudMemo team-blue pour pointer vers Redis team-green
 kubectl edit deploy cloudmemo -n team-blue
 ```
 
-Change `REDIS_HOST` from `redis` to `redis.team-green.svc.cluster.local`
+Changer `REDIS_HOST` de `redis` à `redis.team-green.svc.cluster.local`
 
-Expected result:
-- CloudMemo blue will fail to connect (connection timeout / DNS error)
-- NetworkPolicy blocks the cross-namespace traffic
-- Restore `REDIS_HOST` to `redis` to fix it
+Résultat attendu :
+- CloudMemo blue échouera à se connecter (timeout de connexion / erreur DNS)
+- La Network Policy bloque le trafic inter-namespace
+- Restaurer `REDIS_HOST` à `redis` pour corriger
 
 ---
 
-## Environment Variables
+## Variables d'Environnement
 
 ### CloudMemo
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `REDIS_HOST` | `redis` | Redis hostname (same namespace) |
-| `REDIS_PORT` | `6379` | Redis port |
-| `FLASK_ENV` | `production` | Flask environment |
+| Variable | Défaut | Description |
+|----------|--------|-------------|
+| `REDIS_HOST` | `redis` | Nom d'hôte Redis (même namespace) |
+| `REDIS_PORT` | `6379` | Port Redis |
+| `FLASK_ENV` | `production` | Environnement Flask |
 
-### Docker Compose Override
+### Surcharger Docker Compose
 
-Edit `docker-compose.yaml` to customize ports, Redis settings, etc.
+Éditer `docker-compose.yaml` pour personnaliser les ports, les paramètres Redis, etc.
 
 ---
 
-## Troubleshooting
+## Dépannage
 
-### Pods stuck in `ContainerCreating`
+### Les pods restent bloqués en `ContainerCreating`
 
-**Cause**: CNI plugins not found  
-**Solution**: Ensure `/usr/lib/cni` contains the Calico binaries:
+**Cause** : Plugins CNI non trouvés  
+**Solution** : S'assurer que `/usr/lib/cni` contient les binaires Calico :
 
 ```bash
 ln -s /opt/cni/bin/* /usr/lib/cni/
-kubectl restart kubelet
+systemctl restart kubelet
 ```
 
-### Redis PVC in `Pending`
+### PVC Redis en `Pending`
 
-**Cause**: No StorageClass / PV available  
-**Solution**: Use `emptyDir` volume instead of `volumeClaimTemplates` (data lost on restart)
+**Cause** : Pas de StorageClass / PV disponible  
+**Solution** : Utiliser un volume `emptyDir` au lieu de `volumeClaimTemplates` (données perdues au redémarrage)
 
-### CloudMemo can't reach Redis
+### CloudMemo ne peut pas atteindre Redis
 
-**Cause 1**: NetworkPolicy blocking traffic  
-**Solution**: Verify `allow-app-redis.yaml` is applied
+**Cause 1** : Network Policy bloque le trafic  
+**Solution** : Vérifier que `allow-app-redis.yaml` est appliquée
 
-**Cause 2**: Wrong DNS name  
-**Solution**: Verify pod is using `REDIS_HOST=redis` (intra-namespace) or `redis.team-green.svc.cluster.local` (inter-namespace)
+**Cause 2** : Mauvais nom DNS  
+**Solution** : Vérifier que le pod utilise `REDIS_HOST=redis` (intra-namespace) ou `redis.team-green.svc.cluster.local` (inter-namespace)
 
-### Port-forward not accessible from Windows PC
+### Port-forward non accessible depuis le PC Windows
 
-**Cause**: Port-forward only listens on 127.0.0.1  
-**Solution**: Use SSH tunnel from Windows:
+**Cause** : Port-forward écoute seulement sur 127.0.0.1  
+**Solution** : Utiliser un tunnel SSH depuis Windows :
 
 ```powershell
 ssh -L 5001:127.0.0.1:5001 -L 5002:127.0.0.1:5002 lucas@192.168.20.150
 ```
 
-Then access `http://localhost:5001` and `http://localhost:5002` on your PC.
+Ensuite accéder à `http://localhost:5001` et `http://localhost:5002` sur votre PC.
 
 ---
 
-## Validation Checklist
+## Checklist de Validation
 
-- [ ] Docker image builds and runs locally
-- [ ] Both namespaces created in Kubernetes
-- [ ] CloudMemo pods running in both namespaces
-- [ ] Redis pods running in both namespaces
-- [ ] CloudMemo blue accessible and functional
-- [ ] CloudMemo green accessible and functional
-- [ ] Data isolation confirmed (different memos in each namespace)
-- [ ] NetworkPolicies applied successfully
-- [ ] Default-deny policy blocks unknown traffic
-- [ ] App-to-Redis policy allows intra-namespace access
-- [ ] Cross-namespace access attempt fails as expected
-- [ ] Restoring correct `REDIS_HOST` fixes the app
+- [ ] L'image Docker se construit et fonctionne localement
+- [ ] Les deux namespaces sont créés dans Kubernetes
+- [ ] Les pods CloudMemo s'exécutent dans les deux namespaces
+- [ ] Les pods Redis s'exécutent dans les deux namespaces
+- [ ] CloudMemo blue est accessible et fonctionnel
+- [ ] CloudMemo green est accessible et fonctionnel
+- [ ] Isolation des données confirmée (mémos différents dans chaque namespace)
+- [ ] Les Network Policies sont appliquées avec succès
+- [ ] La politique default-deny bloque le trafic inconnu
+- [ ] La politique app-to-redis autorise l'accès intra-namespace
+- [ ] La tentative d'accès inter-namespace échoue comme prévu
+- [ ] La restauration du bon `REDIS_HOST` corrige l'application
 
 ---
 
-## Key Concepts
+## Concepts Clés
 
-### Multi-Tenancy
+### Multi-Location
 
-Each namespace (`team-blue`, `team-green`) is a separate tenant with:
-- Isolated pods
-- Isolated services
-- Isolated storage (Redis)
-- No data leakage between tenants
+Chaque namespace (`team-blue`, `team-green`) est un locataire séparé avec :
+- Des pods isolés
+- Des services isolés
+- Du stockage isolé (Redis)
+- Aucune fuite de données entre locataires
 
 ### Network Policies
 
-**Default Deny**: All ingress traffic to all pods is blocked by default.  
-**Explicit Allow**: Only specified traffic (app → Redis on port 6379) is permitted.  
-**Same Namespace Only**: Cross-namespace communication is blocked.
+**Deny par Défaut** : Tout le trafic entrant vers tous les pods est bloqué par défaut.  
+**Allow Explicite** : Seul le trafic spécifié (app → Redis sur port 6379) est autorisé.  
+**Même Namespace Uniquement** : La communication inter-namespace est bloquée.
 
-### Kubernetes Objects Used
+### Objets Kubernetes Utilisés
 
-- **Namespace**: Logical cluster partitioning
-- **Deployment**: Manages CloudMemo replicas
-- **StatefulSet**: Manages Redis with stable identity
-- **Service**: ClusterIP for inter-pod communication
-- **NetworkPolicy**: Ingress traffic control
+- **Namespace** : Partitionnement logique du cluster
+- **Deployment** : Gère les réplicas CloudMemo
+- **StatefulSet** : Gère Redis avec identité stable
+- **Service** : ClusterIP pour la communication inter-pods
+- **NetworkPolicy** : Contrôle du trafic entrant
 
 ---
 
 ## Auteurs
 
-Lucas LESENS, Vincent ARSON, Théophane DE SAN NICOLAS
+**Lucas LESENS**, Vincent ARSON, Théophane DE SAN NICOLAS
 
-Projet : Kubernetes
+Projet : Kubernetes - Déploiement Multi-Tenant Infrastructure
+
+---
+
+## Licence
+
+Non spécifiée (à des fins éducatives).
