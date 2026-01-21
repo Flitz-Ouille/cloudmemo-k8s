@@ -289,13 +289,8 @@ Each namespace (`team-blue`, `team-green`) is a separate tenant with:
 
 ---
 
-## Author
+## Auteurs
 
-**Lucas LESENS** - IT Student at CEFAP  
-Project: Kubernetes Multi-Tenant Infrastructure (TP)
+Lucas LESENS, Vincent ARSON, Théophane DE SAN NICOLAS
 
----
-
-## License
-
-None specified (for educational purposes).
+Projet : Kubernetes
