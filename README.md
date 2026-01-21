@@ -291,12 +291,6 @@ Chaque namespace (`team-blue`, `team-green`) est un locataire séparé avec :
 
 ## Auteurs
 
-**Lucas LESENS**, Vincent ARSON, Théophane DE SAN NICOLAS
+Lucas LESENS, Vincent ARSON, Théophane DE SAN NICOLAS
 
-Projet : Kubernetes - Déploiement Multi-Tenant Infrastructure
-
----
-
-## Licence
-
-Non spécifiée (à des fins éducatives).
+Projet : Kubernetes
