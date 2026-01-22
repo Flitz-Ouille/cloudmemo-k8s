@@ -1,5 +1,7 @@
 # CloudMemo - Déploiement Multi-Locataire Kubernetes
 
+## Lien Docker Hub : https://hub.docker.com/repository/docker/flitzouille/cloudmemo/general
+
 ## Aperçu
 
 Ce projet démontre un **déploiement multi-locataire Kubernetes** de l'application CloudMemo utilisant :
